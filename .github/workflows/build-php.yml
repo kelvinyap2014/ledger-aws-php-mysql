@@ -1,0 +1,78 @@
+name: Build PHP Code
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'app/ledger-php/**'
+      - '.github/workflows/build-php.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'app/ledger-php/**'
+      - '.github/workflows/build-php.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: ledger_db
+          MYSQL_ROOT_PASSWORD: rootpassword
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -uroot -prootpassword"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, xml, ctype, iconv, pdo_mysql, bcmath
+          coverage: none
+
+      - name: Validate composer.json and composer.lock
+        working-directory: ./app/ledger-php
+        run: composer validate --strict
+
+      - name: Get Composer Cache Directory
+        id: composer-cache
+        working-directory: ./app/ledger-php
+        run: |
+          echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      - name: Install dependencies
+        working-directory: ./app/ledger-php
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Run Database Migrations
+        working-directory: ./app/ledger-php
+        env:
+          DATABASE_URL: "mysql://root:rootpassword@127.0.0.1:3306/ledger_db?serverVersion=8.0&charset=utf8mb4"
+        run: php bin/console doctrine:migrations:migrate --no-interaction
+
+      - name: Run PHPUnit Tests
+        working-directory: ./app/ledger-php
+        env:
+          DATABASE_URL: "mysql://root:rootpassword@127.0.0.1:3306/ledger_db?serverVersion=8.0&charset=utf8mb4"
+        run: php bin/phpunit

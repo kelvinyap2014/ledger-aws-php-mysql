@@ -1,4 +1,6 @@
 {
+    "name": "ledger/ledger-stream",
+    "description": "Core financial ledger and transaction processing service for LedgerStream",
     "type": "project",
     "license": "proprietary",
     "minimum-stability": "stable",
