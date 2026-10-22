@@ -2,7 +2,8 @@
 
 namespace App\Service;
 
-use App\Entity\Account;
+use App\Entity\IdempotencyKey;
+use App\Entity\LedgerEntry;
 use App\Repository\AccountRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Uid\Uuid;
@@ -15,21 +16,29 @@ class TransferService
     ) {}
 
     public function executeTransfer(
-        ?string $idempotencyKey,
+        ?string $idempotencyKeyStr,
         string $sourceAccountId,
         string $destinationAccountId,
         string $amount,
         string $currency,
         string $description
-    ): string {
+    ): array {
         if (bccomp($amount, '0.0000', 4) <= 0) {
             throw new \InvalidArgumentException("Transfer amount must be strictly positive");
         }
 
-        // Database Transaction Block
-        return $this->entityManager->wrapInTransaction(function () use ($idempotencyKey, $sourceAccountId, $destinationAccountId, $amount, $currency, $description) {
+        // 1. Handle Idempotency Check if key provided
+        if ($idempotencyKeyStr) {
+            $existingKey = $this->entityManager->find(IdempotencyKey::class, $idempotencyKeyStr);
+            if ($existingKey) {
+                return json_decode($existingKey->getResponseBody(), true);
+            }
+        }
 
-            // 1. Pessimistic Lock on Accounts to prevent race conditions
+        // 2. Execute within database transaction block
+        $result = $this->entityManager->wrapInTransaction(function () use ($idempotencyKeyStr, $sourceAccountId, $destinationAccountId, $amount, $currency, $description) {
+
+            // Pessimistic Lock on Accounts
             $sourceAccount = $this->accountRepository->findByIdForUpdate($sourceAccountId);
             if (!$sourceAccount) {
                 throw new \InvalidArgumentException("Source account not found: {$sourceAccountId}");
@@ -40,25 +49,43 @@ class TransferService
                 throw new \InvalidArgumentException("Destination account not found: {$destinationAccountId}");
             }
 
-            // 2. Validate sufficient funds using BCMath comparison
             if (bccomp($sourceAccount->getBalance(), $amount, 4) < 0) {
-                throw new \IllegalStateException("Insufficient funds in source account");
+                throw new \RuntimeException("Insufficient funds in source account");
             }
 
-            // 3. Generate unique transaction reference
             $txRef = 'TX-' . strtoupper(substr(Uuid::v4()->toBase32(), 0, 8));
 
-            // 4. Update balances securely using BCMath
-            $sourceNewBalance = bcsub($sourceAccount->getBalance(), $amount, 4);
-            $destNewBalance = bcadd($destAccount->getBalance(), $amount, 4);
+            // Update account balances
+            $sourceAccount->setBalance(bcsub($sourceAccount->getBalance(), $amount, 4))->setUpdatedAt(new \DateTimeImmutable());
+            $destAccount->setBalance(bcadd($destAccount->getBalance(), $amount, 4))->setUpdatedAt(new \DateTimeImmutable());
 
-            $now = new \DateTimeImmutable();
-            $sourceAccount->setBalance($sourceNewBalance)->setUpdatedAt($now);
-            $destAccount->setBalance($destNewBalance)->setUpdatedAt($now);
+            // Create Double-Entry Ledger Logs
+            $debitEntry = LedgerEntry::createDebit($txRef, $sourceAccountId, $amount, $currency, $description);
+            $creditEntry = LedgerEntry::createCredit($txRef, $destinationAccountId, $amount, $currency, $description);
+
+            $this->entityManager->persist($debitEntry);
+            $this->entityManager->persist($creditEntry);
+
+            $responsePayload = [
+                'status' => 'SUCCESS',
+                'transactionReference' => $txRef,
+                'idempotencyKey' => $idempotencyKeyStr
+            ];
+
+            // Save Idempotency record if key provided
+            if ($idempotencyKeyStr) {
+                $idempotencyKeyEntity = new IdempotencyKey();
+                $idempotencyKeyEntity->setIdempotencyKey($idempotencyKeyStr);
+                $idempotencyKeyEntity->setRequestHash(hash('sha256', $sourceAccountId . $destinationAccountId . $amount));
+                $idempotencyKeyEntity->setResponseBody(json_encode($responsePayload));
+                $this->entityManager->persist($idempotencyKeyEntity);
+            }
 
             $this->entityManager->flush();
 
-            return $txRef;
+            return $responsePayload;
         });
+
+        return $result;
     }
 }

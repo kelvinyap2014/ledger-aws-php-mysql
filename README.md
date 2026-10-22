@@ -125,85 +125,88 @@ namespace App\Service;
 use App\Entity\IdempotencyKey;
 use App\Entity\LedgerEntry;
 use App\Repository\AccountRepository;
-use App\Repository\IdempotencyRepository;
-use App\Repository\LedgerRepository;
 use Doctrine\ORM\EntityManagerInterface;
-use InvalidArgumentException;
-use RuntimeException;
 use Symfony\Component\Uid\Uuid;
 
 class TransferService
 {
     public function __construct(
         private AccountRepository $accountRepository,
-        private LedgerRepository $ledgerRepository,
-        private IdempotencyRepository $idempotencyRepository,
         private EntityManagerInterface $entityManager
     ) {}
 
     public function executeTransfer(
-        ?string $idempotencyKey,
+        ?string $idempotencyKeyStr,
         string $sourceAccountId,
         string $destinationAccountId,
         string $amount,
         string $currency,
-        ?string $description
-    ): string {
-        // 1. Enforce Idempotency if key is provided
-        if (!empty($idempotencyKey)) {
-            $existingKey = $this->idempotencyRepository->find($idempotencyKey);
-            if ($existingKey) {
-                // Request has already been processed! Return the stored transaction reference.
-                return $existingKey->getResponseBody();
-            }
-        }
-
+        string $description
+    ): array {
         if (bccomp($amount, '0.0000', 4) <= 0) {
-            throw new InvalidArgumentException('Transfer amount must be strictly positive');
+            throw new \InvalidArgumentException("Transfer amount must be strictly positive");
         }
 
-        return $this->entityManager->wrapInTransaction(function () use ($idempotencyKey, $sourceAccountId, $destinationAccountId, $amount, $currency, $description) {
-            // 2. Lock accounts using pessimistic write lock
-            $sourceAccount = $this->accountRepository->findForUpdate($sourceAccountId);
+        // 1. Handle Idempotency Check if key provided
+        if ($idempotencyKeyStr) {
+            $existingKey = $this->entityManager->find(IdempotencyKey::class, $idempotencyKeyStr);
+            if ($existingKey) {
+                return json_decode($existingKey->getResponseBody(), true);
+            }
+        }
+
+        // 2. Execute within database transaction block
+        $result = $this->entityManager->wrapInTransaction(function () use ($idempotencyKeyStr, $sourceAccountId, $destinationAccountId, $amount, $currency, $description) {
+
+            // Pessimistic Lock on Accounts
+            $sourceAccount = $this->accountRepository->findByIdForUpdate($sourceAccountId);
             if (!$sourceAccount) {
-                throw new InvalidArgumentException("Source account not found: " . $sourceAccountId);
+                throw new \InvalidArgumentException("Source account not found: {$sourceAccountId}");
             }
 
-            $destAccount = $this->accountRepository->findForUpdate($destinationAccountId);
+            $destAccount = $this->accountRepository->findByIdForUpdate($destinationAccountId);
             if (!$destAccount) {
-                throw new InvalidArgumentException("Destination account not found: " . $destinationAccountId);
+                throw new \InvalidArgumentException("Destination account not found: {$destinationAccountId}");
             }
 
-            // 3. Validate sufficient funds
             if (bccomp($sourceAccount->getBalance(), $amount, 4) < 0) {
-                throw new RuntimeException("Insufficient funds in source account");
+                throw new \RuntimeException("Insufficient funds in source account");
             }
 
-            // 4. Generate unique transaction reference
             $txRef = 'TX-' . strtoupper(substr(Uuid::v4()->toBase32(), 0, 8));
 
-            // 5. Create balanced double-entry ledger legs
-            $debitEntry = LedgerEntry::createDebit($txRef, $sourceAccount, $amount, $currency, $description);
-            $creditEntry = LedgerEntry::createCredit($txRef, $destAccount, $amount, $currency, $description);
+            // Update account balances
+            $sourceAccount->setBalance(bcsub($sourceAccount->getBalance(), $amount, 4))->setUpdatedAt(new \DateTimeImmutable());
+            $destAccount->setBalance(bcadd($destAccount->getBalance(), $amount, 4))->setUpdatedAt(new \DateTimeImmutable());
+
+            // Create Double-Entry Ledger Logs
+            $debitEntry = LedgerEntry::createDebit($txRef, $sourceAccountId, $amount, $currency, $description);
+            $creditEntry = LedgerEntry::createCredit($txRef, $destinationAccountId, $amount, $currency, $description);
 
             $this->entityManager->persist($debitEntry);
             $this->entityManager->persist($creditEntry);
 
-            // 6. Update balances atomically
-            $sourceAccount->setBalance(bcsub($sourceAccount->getBalance(), $amount, 4));
-            $destAccount->setBalance(bcadd($destAccount->getBalance(), $amount, 4));
+            $responsePayload = [
+                'status' => 'SUCCESS',
+                'transactionReference' => $txRef,
+                'idempotencyKey' => $idempotencyKeyStr
+            ];
 
-            // 7. Save Idempotency Key to prevent duplicate processing on retry
-            if (!empty($idempotencyKey)) {
-                $keyRecord = new IdempotencyKey();
-                $keyRecord->setIdempotencyKey($idempotencyKey);
-                $keyRecord->setRequestHash(hash('sha256', $sourceAccountId . $destinationAccountId . $amount));
-                $keyRecord->setResponseBody($txRef);
-                $this->entityManager->persist($keyRecord);
+            // Save Idempotency record if key provided
+            if ($idempotencyKeyStr) {
+                $idempotencyKeyEntity = new IdempotencyKey();
+                $idempotencyKeyEntity->setIdempotencyKey($idempotencyKeyStr);
+                $idempotencyKeyEntity->setRequestHash(hash('sha256', $sourceAccountId . $destinationAccountId . $amount));
+                $idempotencyKeyEntity->setResponseBody(json_encode($responsePayload));
+                $this->entityManager->persist($idempotencyKeyEntity);
             }
 
-            return $txRef;
+            $this->entityManager->flush();
+
+            return $responsePayload;
         });
+
+        return $result;
     }
 }
 ```
@@ -425,6 +428,8 @@ composer require --dev symfony/maker-bundle
 
 # Create your Database Entity (with Repository)
 php bin/console make:entity Account
+php bin/console make:entity IdempotencyKey
+php bin/console make:entity LedgerEntry
 # Or use PHP (via docker)
 # docker exec -it ledger_php php bin/console make:entity Account
 
