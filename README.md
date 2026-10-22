@@ -211,53 +211,77 @@ class TransferService
 }
 ```
 
-### 4.2 PHPUnit Integration Test Suite (TransferServiceIntegrationTest.php)
+### 4.2 PHPUnit Unit Test (TransferControllerTest.php)
 
 ```php
 <?php
 
-namespace App\Tests\Service;
+<?php
 
-use App\Repository\AccountRepository;
+namespace App\Tests\Controller;
+
 use App\Service\TransferService;
-use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
-class TransferServiceIntegrationTest extends KernelTestCase
+class TransferControllerTest extends WebTestCase
 {
-    private ?TransferService $transferService;
-    private ?AccountRepository $accountRepository;
-
-    protected function setUp(): void
+    public function testTransferControllerCallsServiceCorrectly(): void
     {
-        self::bootKernel();
-        $container = static::getContainer();
-        $this->transferService = $container->get(TransferService::class);
-        $this->accountRepository = $container->get(AccountRepository::class);
-    }
+        $client = static::createClient();
 
-    public function testExecuteTransferIntegrationSuccess(): void
-    {
-        $sourceId = 'acc-001-nzd'; // Kelvin Smith: 15000.0000
-        $destId = 'acc-003-nzd';   // Jane Doe: 250.5000
-        $transferAmount = '500.0000';
+        // Setup mock service with array return type
+        $expectedTxRef = 'TX-12345678';
+        $serviceResponse = [
+            'status' => 'SUCCESS',
+            'transactionReference' => $expectedTxRef,
+            'idempotencyKey' => 'test-key-abc'
+        ];
 
-        $txRef = $this->transferService->executeTransfer(
-            'test-idempotency-key-01',
-            $sourceId,
-            $destId,
-            $transferAmount,
-            'NZD',
-            'Integration test payment'
+        $transferService = $this->createMock(TransferService::class);
+        $transferService->expects($this->once())
+            ->method('executeTransfer')
+            ->with(
+                'test-key-abc',
+                'acc-001',
+                'acc-002',
+                '250.00',
+                'NZD',
+                'Test Transfer'
+            )
+            ->willReturn($serviceResponse);
+
+        // Override the service in the container
+        static::getContainer()->set(TransferService::class, $transferService);
+
+        // Make POST request
+        $client->request(
+            'POST',
+            '/api/v1/transfers',
+            [],
+            [],
+            [
+                'HTTP_IDEMPOTENCY_KEY' => 'test-key-abc',
+                'CONTENT_TYPE' => 'application/json',
+            ],
+            json_encode([
+                'sourceAccountId' => 'acc-001',
+                'destinationAccountId' => 'acc-002',
+                'amount' => '250.00',
+                'currency' => 'NZD',
+                'description' => 'Test Transfer',
+            ])
         );
 
-        $this->assertNotNull($txRef);
-        $this->assertStringStartsWith('TX-', $txRef);
+        $response = $client->getResponse();
 
-        $updatedSource = $this->accountRepository->find($sourceId);
-        $updatedDest = $this->accountRepository->find($destId);
+        // Then
+        $this->assertEquals(201, $response->getStatusCode());
 
-        $this->assertEquals('14500.0000', $updatedSource->getBalance());
-        $this->assertEquals('750.5000', $updatedDest->getBalance());
+        $responseData = json_decode($response->getContent(), true);
+        $this->assertNotNull($responseData);
+        $this->assertEquals('SUCCESS', $responseData['status']);
+        $this->assertEquals($expectedTxRef, $responseData['transactionReference']);
+        $this->assertEquals('test-key-abc', $responseData['idempotencyKey']);
     }
 }
 ```

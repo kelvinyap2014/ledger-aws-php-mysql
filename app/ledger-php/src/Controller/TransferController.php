@@ -20,7 +20,7 @@ class TransferController extends AbstractController
         $idempotencyKey = $request->headers->get('Idempotency-Key');
 
         try {
-            $txRef = $this->transferService->executeTransfer(
+            $result = $this->transferService->executeTransfer(
                 $idempotencyKey,
                 $data['sourceAccountId'] ?? '',
                 $data['destinationAccountId'] ?? '',
@@ -29,11 +29,7 @@ class TransferController extends AbstractController
                 $data['description'] ?? ''
             );
 
-            return $this->json([
-                'status' => 'SUCCESS',
-                'transactionReference' => $txRef,
-                'idempotencyKey' => $idempotencyKey
-            ], 201);
+            return $this->json($result, 201);
 
         } catch (\Exception $e) {
             return $this->json([
