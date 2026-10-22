@@ -103,10 +103,10 @@ CREATE INDEX idx_ledger_account_id ON ledger_entries(account_id);
 ### 3.2 Sample Mock Data (001-test-sample-mock-data.sql)
 
 ```sql
-INSERT INTO accounts (id, account_number, holder_name, currency, balance, status) VALUES
-('acc-001-nzd', 'NZ01-8839-0012938-00', 'Kelvin Smith', 'NZD', 15000.0000, 'ACTIVE'),
-('acc-002-nzd', 'NZ01-8839-0098412-00', 'Treasury Ops', 'NZD', 500000.0000, 'ACTIVE'),
-('acc-003-nzd', 'NZ01-8839-0044123-00', 'Jane Doe', 'NZD', 250.5000, 'ACTIVE');
+INSERT INTO accounts (id, account_number, holder_name, currency, balance, status, created_at, updated_at) VALUES
+('acc-001-nzd', 'NZ01-8839-0012938-00', 'Kelvin Smith', 'NZD', 15000.0000, 'ACTIVE', NOW(), NOW()),
+('acc-002-nzd', 'NZ01-8839-0098412-00', 'Treasury Ops', 'NZD', 500000.0000, 'ACTIVE', NOW(), NOW()),
+('acc-003-nzd', 'NZ01-8839-0044123-00', 'Jane Doe', 'NZD', 250.5000, 'ACTIVE', NOW(), NOW());
 
 INSERT INTO ledger_entries (id, transaction_reference, account_id, entry_type, amount, currency, description) VALUES
 ('tx-init-001', 'TX-INIT-20261018-01', 'acc-002-nzd', 'DEBIT', 15000.0000, 'NZD', 'Initial funding for Kelvin Smith'),
@@ -387,7 +387,7 @@ docker run --rm \
 ### How to bring up MySQL with ledger-php app
 ```bash
 # at root folder
-docker compose up
+docker compose up --build
 ```
 
 ### How to Run Symfony Local Development Server
@@ -421,6 +421,11 @@ php bin/console make:entity Account
 
 # Controller (with template)
 php bin/console make:controller TransferController
+
+# Generate the migration file
+docker exec -it ledger_php php bin/console make:migration
+# Run the migration against MySQL
+docker exec -it ledger_php php bin/console doctrine:migrations:migrate --no-interaction
 ```
 
 ## NestJS (Node.js) Development

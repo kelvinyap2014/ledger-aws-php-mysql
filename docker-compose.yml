@@ -13,7 +13,7 @@ services:
       - mysql_data:/var/lib/mysql
 
   php:
-    image: php:8.3-fpm
+    build: ./app/ledger-php          # <--- Change this from 'image:' to 'build:'
     container_name: ledger_php
     volumes:
       - ./app/ledger-php:/var/www/html
