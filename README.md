@@ -413,6 +413,14 @@ composer create-project symfony/skeleton:"^7.0" .
 composer require webapp
 composer require symfony/orm-pack
 composer require --dev symfony/maker-bundle
+
+# Create your Database Entity (with Repository)
+php bin/console make:entity Account
+# Or use PHP (via docker)
+# docker exec -it ledger_php php bin/console make:entity Account
+
+# Controller (with template)
+php bin/console make:controller TransferController
 ```
 
 ## NestJS (Node.js) Development
