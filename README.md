@@ -384,20 +384,10 @@ docker run --rm \
 
 ## PHP Development
 
-### How PHP Symfony was setup from scratch
+### How to bring up MySQL with ledger-php app
 ```bash
-mkdir -p app/ledger-php
-cd app/ledger-php
-# Use Composer (via docker) to initialize the Symfony Skeleton
-docker run --rm -it -v $(pwd):/app composer:latest create-project symfony/skeleton:"^7.0" .
-
-# PHP 8.3 CLI and Composer are installed in local machine
-# composer create-project symfony/skeleton:"^7.0" .
-
-# Require Essential Packages
-composer require webapp
-composer require symfony/orm-pack
-composer require --dev symfony/maker-bundle
+# at root folder
+docker compose up
 ```
 
 ### How to Run Symfony Local Development Server
@@ -406,6 +396,23 @@ cd app/ledger-php
 composer install
 php bin/console doctrine:migrations:migrate
 symfony server:start
+```
+
+### Background: How PHP Symfony was setup from scratch
+```bash
+mkdir -p app/ledger-php
+cd app/ledger-php
+
+# Required: PHP 8.3 CLI and Composer are installed in local machine
+composer create-project symfony/skeleton:"^7.0" .
+
+# Or use Composer (via docker) to initialize the Symfony Skeleton
+# docker run --rm -it -v $(pwd):/app composer:latest create-project symfony/skeleton:"^7.0" .
+
+# Require Essential Packages
+composer require webapp
+composer require symfony/orm-pack
+composer require --dev symfony/maker-bundle
 ```
 
 ## NestJS (Node.js) Development
