@@ -13,7 +13,9 @@ services:
       - mysql_data:/var/lib/mysql
 
   php:
-    build: ./app/ledger-php          # <--- Change this from 'image:' to 'build:'
+    build:
+      context: ./app/ledger-php
+      dockerfile: Dockerfile.dev
     container_name: ledger_php
     volumes:
       - ./app/ledger-php:/var/www/html
