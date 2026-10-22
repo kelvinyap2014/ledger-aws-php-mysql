@@ -393,6 +393,11 @@ docker run --rm -it -v $(pwd):/app composer:latest create-project symfony/skelet
 
 # PHP 8.3 CLI and Composer are installed in local machine
 # composer create-project symfony/skeleton:"^7.0" .
+
+# Require Essential Packages
+composer require webapp
+composer require symfony/orm-pack
+composer require --dev symfony/maker-bundle
 ```
 
 ### How to Run Symfony Local Development Server
