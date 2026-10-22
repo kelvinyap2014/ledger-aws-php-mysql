@@ -19,7 +19,8 @@ services:
       - ./app/ledger-php:/var/www/html
     working_dir: /var/www/html
     ports:
-      - "9000:9000"
+      - "8000:8000"                                  # <--- Expose port 8000 to your host machine
+    command: php -S 0.0.0.0:8000 -t public           # <--- Automatically starts the built-in server on boot
     environment:
       # This overrides the DATABASE_URL specifically inside the PHP container
       DATABASE_URL: "mysql://root:rootpassword@mysql:3306/ledger_db?serverVersion=8.0&charset=utf8mb4"

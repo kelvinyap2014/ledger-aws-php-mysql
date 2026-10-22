@@ -384,26 +384,35 @@ docker run --rm \
 
 ## PHP Development
 
-### How to bring up MySQL with ledger-php app
+### Quick Start: How to bring up MySQL with ledger-php app
 ```bash
+cd app/ledger-php
+docker run --rm -it -v $(pwd):/app composer:latest install
+
 # at root folder
+cd ../..
 docker compose up --build
+# Run the migration against MySQL
+docker exec -it ledger_php php bin/console doctrine:migrations:migrate --no-interaction
 ```
 
 ### How to Run Symfony Local Development Server
 ```bash
+# at root folder, start MySQL server only
+docker compose up mysql
+
 cd app/ledger-php
 composer install
 php bin/console doctrine:migrations:migrate
 symfony server:start
 ```
 
-### Background: How PHP Symfony was setup from scratch
+### Background: How PHP Symfony project was setup from scratch
 ```bash
 mkdir -p app/ledger-php
 cd app/ledger-php
 
-# Required: PHP 8.3 CLI and Composer are installed in local machine
+# Required: PHP 8.3 CLI and Composer and Symfony are installed in local machine
 composer create-project symfony/skeleton:"^7.0" .
 
 # Or use Composer (via docker) to initialize the Symfony Skeleton
@@ -424,8 +433,10 @@ php bin/console make:controller TransferController
 
 # Generate the migration file
 docker exec -it ledger_php php bin/console make:migration
-# Run the migration against MySQL
-docker exec -it ledger_php php bin/console doctrine:migrations:migrate --no-interaction
+
+# To generate migration from local:
+# sudo apt-get install libzip-dev zip unzip php8.3-mysql php8.3-bcmath
+# php bin/console make:migration
 ```
 
 ## NestJS (Node.js) Development
@@ -451,7 +462,8 @@ zip -r function.zip dist/ node_modules/ package.json
 
 ### 1. Start the Application
 ```bash
-symfony server:start
+# at root folder
+docker compose up --build
 ```
 
 ### 2. Get Account Statement URL Request
