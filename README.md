@@ -400,9 +400,8 @@ aws logs tail /ecs/ledger-stream-dev --follow --region ap-southeast-2
 #### Test Docker Image Locally
 ```bash
 docker run --rm \
-  -p 8080:80 \
-  -e APP_ENV=prod \
-  -e DATABASE_URL="mysql://ledgerstream:secret@172.17.0.1:3306/ledgerdb?serverVersion=8.0&charset=utf8mb4" \
+  -p 80:80 \
+  -e DATABASE_URL="mysql://root:rootpassword@172.17.0.1:3306/ledger_db?serverVersion=8.0&charset=utf8mb4" \
   -e SQS_SETTLEMENT_QUEUE_URL=https://sqs.ap-southeast-2.amazonaws.com/<aws-account-id>/ledger-settlement-queue-dev \
   -e AWS_REGION=ap-southeast-2 \
   -e AWS_S3_AUDIT_BUCKET_NAME=ledger-audit-statements-dev \
