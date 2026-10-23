@@ -432,6 +432,9 @@ cd app/ledger-php
 composer install
 php bin/console doctrine:migrations:migrate
 symfony server:start
+
+# Run unit test
+php bin/phpunit
 ```
 
 ### Background: How PHP Symfony project was setup from scratch
@@ -493,6 +496,8 @@ zip -r function.zip dist/ node_modules/ package.json
 ```bash
 # at root folder
 docker compose up --build
+
+curl -X GET "http://localhost:8000/health"
 ```
 
 ### 2. Get Account Statement URL Request
