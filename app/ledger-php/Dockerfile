@@ -63,8 +63,8 @@ RUN rm -rf var/cache var/log && \
     chown -R www-data:www-data var/ && \
     chmod -R 777 var/
 
-# Expose HTTP port 80 for the AWS Application Load Balancer
-EXPOSE 80
+# Expose HTTP port 8080 for the AWS Application Load Balancer
+EXPOSE 8080
 
 # Use entrypoint to run migrations and boot services
 ENTRYPOINT ["entrypoint.sh"]
