@@ -30,5 +30,21 @@ services:
         arguments:
             $auditBucketName: '%env(AWS_S3_AUDIT_BUCKET_NAME)%'
 
+    # Configure AWS SQS Client
+    Aws\Sqs\SqsClient:
+        arguments:
+            -   version: 'latest'
+                region: '%env(AWS_REGION)%'
+
+    # Bind SQS queue URL from environment variable
+    App\Service\SqsSettlementPublisher:
+        arguments:
+            $settlementQueueUrl: '%env(SQS_SETTLEMENT_QUEUE_URL)%'
+
+    # AsyncSettlementPublisher event listener
+    App\EventListener\AsyncSettlementPublisher:
+        tags:
+            - { name: kernel.event_listener, event: kernel.terminate }
+
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones

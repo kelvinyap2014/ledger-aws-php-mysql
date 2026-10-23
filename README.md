@@ -335,7 +335,6 @@ ledger-aws-php-mysql/
 │   ├── lambda.tf               # Lambda resource setup
 │   └── sqs.tf                  # SQS Queue setup
 ├── docker-compose.yml          # Local development stack (MySQL + PHP FPM / FrankenPHP)
-├── Makefile                    # Automation for local build, Docker build, and testing
 └── README.md                   # Comprehensive architecture & setup guide
 ```
 

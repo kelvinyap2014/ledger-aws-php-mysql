@@ -2,8 +2,10 @@
 
 namespace App\Service;
 
+use App\DTO\SettlementEvent;
 use App\Entity\IdempotencyKey;
 use App\Entity\LedgerEntry;
+use App\EventListener\AsyncSettlementPublisher;
 use App\Repository\AccountRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Uid\Uuid;
@@ -12,7 +14,8 @@ class TransferService
 {
     public function __construct(
         private AccountRepository $accountRepository,
-        private EntityManagerInterface $entityManager
+        private EntityManagerInterface $entityManager,
+        private AsyncSettlementPublisher $asyncPublisher,
     ) {}
 
     public function executeTransfer(
@@ -82,6 +85,18 @@ class TransferService
             }
 
             $this->entityManager->flush();
+
+            // Queue settlement event for async processing (fire-and-forget)
+            $event = new SettlementEvent(
+                $txRef,
+                $sourceAccountId,
+                $destinationAccountId,
+                $amount,
+                $currency,
+                (new \DateTimeImmutable())->format(\DateTimeInterface::ATOM)
+            );
+
+            $this->asyncPublisher->queue($event);
 
             return $responsePayload;
         });
