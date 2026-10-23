@@ -31,8 +31,8 @@ resource "aws_ecs_task_definition" "app" {
         }
       ]
       environment = [
-        # { name = "SQS_SETTLEMENT_QUEUE_URL", value = aws_sqs_queue.settlement_queue.url },
-        # { name = "AWS_S3_AUDIT_BUCKET_NAME", value = aws_s3_bucket.audit_statements.id },
+        { name = "SQS_SETTLEMENT_QUEUE_URL", value = aws_sqs_queue.settlement_queue.url },
+        { name = "AWS_S3_AUDIT_BUCKET_NAME", value = aws_s3_bucket.audit_statements.id },
         { name = "AWS_REGION", value = var.region }
       ]
       secrets = [
@@ -134,52 +134,52 @@ resource "aws_iam_role" "ecs_task_role" {
 }
 
 # Grant task role permission to send messages to SQS
-# resource "aws_iam_policy" "ecs_sqs_policy" {
-#   name = "ledger-stream-ecs-sqs-policy-${var.environment}"
+resource "aws_iam_policy" "ecs_sqs_policy" {
+  name = "ledger-stream-ecs-sqs-policy-${var.environment}"
 
-#   policy = jsonencode({
-#     Version = "2012-10-17"
-#     Statement = [
-#       {
-#         Effect = "Allow"
-#         Action = [
-#           "sqs:SendMessage"
-#         ]
-#         Resource = aws_sqs_queue.settlement_queue.arn
-#       }
-#     ]
-#   })
-# }
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "sqs:SendMessage"
+        ]
+        Resource = aws_sqs_queue.settlement_queue.arn
+      }
+    ]
+  })
+}
 
-# resource "aws_iam_role_policy_attachment" "ecs_task_sqs_attach" {
-#   role       = aws_iam_role.ecs_task_role.name
-#   policy_arn = aws_iam_policy.ecs_sqs_policy.arn
-# }
+resource "aws_iam_role_policy_attachment" "ecs_task_sqs_attach" {
+  role       = aws_iam_role.ecs_task_role.name
+  policy_arn = aws_iam_policy.ecs_sqs_policy.arn
+}
 
 # Grant task role permission to read/write to S3 audit bucket
-# resource "aws_iam_policy" "ecs_s3_policy" {
-#   name = "ledger-stream-ecs-s3-policy-${var.environment}"
+resource "aws_iam_policy" "ecs_s3_policy" {
+  name = "ledger-stream-ecs-s3-policy-${var.environment}"
 
-#   policy = jsonencode({
-#     Version = "2012-10-17"
-#     Statement = [
-#       {
-#         Effect = "Allow"
-#         Action = [
-#           "s3:PutObject",
-#           "s3:GetObject",
-#           "s3:ListBucket"
-#         ]
-#         Resource = [
-#           aws_s3_bucket.audit_statements.arn,
-#           "${aws_s3_bucket.audit_statements.arn}/*"
-#         ]
-#       }
-#     ]
-#   })
-# }
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:PutObject",
+          "s3:GetObject",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          aws_s3_bucket.audit_statements.arn,
+          "${aws_s3_bucket.audit_statements.arn}/*"
+        ]
+      }
+    ]
+  })
+}
 
-# resource "aws_iam_role_policy_attachment" "ecs_task_s3_attach" {
-#   role       = aws_iam_role.ecs_task_role.name
-#   policy_arn = aws_iam_policy.ecs_s3_policy.arn
-# }
+resource "aws_iam_role_policy_attachment" "ecs_task_s3_attach" {
+  role       = aws_iam_role.ecs_task_role.name
+  policy_arn = aws_iam_policy.ecs_s3_policy.arn
+}
