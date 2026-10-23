@@ -485,7 +485,7 @@ docker exec -it ledger_php php bin/console make:migration
 ### Quick Start: Build & Package Lambda Functions
 
 ```bash
-cd lambda/settlement-handler
+cd app/lambda/settlement-handler
 
 # 1. Install dependencies
 npm install
@@ -493,8 +493,20 @@ npm install
 # 2. Build NestJS Lambda handler
 npm run build
 
-# 3. Package artifact for Lambda deployment
-zip -r function.zip dist/ node_modules/ package.json
+# 3. Build function.zip file for AWS Lambda deployment
+./build.sh
+```
+
+### Background: How NestJS (Node.js) project was setup from scratch
+```bash
+mkdir -p app/lambda/settlement-handler
+cd app/lambda/settlement-handler
+# Initialize a new Node.js project (if package.json doesn't exist yet)
+npm init -y
+# Production Dependencies (NestJS core & reflection)
+npm install @nestjs/common @nestjs/core reflect-metadata rxjs
+# Development Dependencies (TypeScript, AWS types, and bundler)
+npm install --save-dev typescript @types/node @types/aws-lambda esbuild @nestjs/cli
 ```
 
 # Testing
