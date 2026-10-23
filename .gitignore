@@ -167,3 +167,9 @@ phpunit.xml
 public/assets/
 assets/vendor/
 ###< symfony/asset-mapper ###
+
+.terraform/
+.terraform
+.terraform*
+terraform.tfstate
+terraform.tfstate.backup

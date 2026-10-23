@@ -1,0 +1,5 @@
+region       = "ap-southeast-2"
+environment  = "dev"
+project_name = "ledger-stream"
+ecs_task_cpu    = "1024"
+ecs_task_memory = "2048"

@@ -366,6 +366,7 @@ terraform init
 terraform plan -var-file="terraform-dev.tfvars"
 # Apply changes interactively (you'll be prompted with a summary, type 'yes' to confirm)
 terraform apply -var-file="terraform-dev.tfvars"
+# terraform apply -var-file="terraform-dev.tfvars" -auto-approve
 
 # PROD environment — plan and apply
 terraform plan -var-file="terraform-prod.tfvars"
