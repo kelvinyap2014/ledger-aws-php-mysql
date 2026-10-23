@@ -19,5 +19,16 @@ services:
     App\:
         resource: '../src/'
 
+    # AWS S3 Client
+    Aws\S3\S3Client:
+        arguments:
+            -   version: 'latest'
+                region: '%env(AWS_REGION)%'
+
+    # Bind bucket name directly from the environment
+    App\Service\StatementService:
+        arguments:
+            $auditBucketName: '%env(AWS_S3_AUDIT_BUCKET_NAME)%'
+
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones

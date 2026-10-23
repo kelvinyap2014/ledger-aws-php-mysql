@@ -42,6 +42,8 @@ services:
     environment:
       # This overrides the DATABASE_URL specifically inside the PHP container
       DATABASE_URL: "mysql://root:rootpassword@mysql:3306/ledger_db?serverVersion=8.0&charset=utf8mb4"
+      AWS_REGION: "ap-southeast-2"
+      AWS_S3_AUDIT_BUCKET_NAME: "ledger-stream-testing-local-20261020"
     depends_on:
       mysql-health-check:
         condition: service_completed_successfully

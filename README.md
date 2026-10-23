@@ -460,6 +460,8 @@ composer create-project symfony/skeleton:"^7.0" .
 composer require webapp
 composer require symfony/orm-pack
 composer require --dev symfony/maker-bundle
+# AWS SDK
+composer require aws/aws-sdk-php
 
 # Create your Database Entity (with Repository)
 php bin/console make:entity Account
