@@ -53,8 +53,15 @@ COPY docker/nginx.conf /etc/nginx/http.d/default.conf
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-# Ensure Symfony runtime directories (cache & logs) are fully writable
-RUN mkdir -p var/cache var/log && chmod -R 777 var
+# Create Symfony runtime directories with full structure (prod cache needs subdirs)
+# Set APP_ENV early so Symfony knows which cache dirs to create
+ENV APP_ENV=prod
+
+# Pre-create all cache and log directories with 777 permissions to avoid runtime permission issues
+RUN rm -rf var/cache var/log && \
+    mkdir -p var/cache/prod var/cache/dev var/log var/tmp && \
+    chown -R www-data:www-data var/ && \
+    chmod -R 777 var/
 
 # Expose HTTP port 80 for the AWS Application Load Balancer
 EXPOSE 80

@@ -383,7 +383,8 @@ terraform apply -var-file="terraform-dev.tfvars" -target=aws_ecr_repository.ledg
 # Authenticate your local Docker client to your AWS ECR registry
 aws ecr get-login-password --region <region> | docker login --username AWS --password-stdin <aws-account-id>.dkr.ecr.<region>.amazonaws.com
 
-# Build your Docker image from your project root directory
+# Build your Docker image from your PHP project directory
+cd app/ledger-php
 docker build -t ledger-stream-php .
 
 # Tag your local image so Docker knows which ECR repository and tag it
@@ -420,6 +421,13 @@ cd ../..
 docker compose up --build
 # Run the migration against MySQL
 docker exec -it ledger_php php bin/console doctrine:migrations:migrate --no-interaction
+
+# This ensures MySQL re-initializes fresh every time
+docker compose down -v
+docker compose up --build
+
+# Faster, but reuses the old MySQL volume
+docker compose restart
 ```
 
 ### How to Run Symfony Local Development Server

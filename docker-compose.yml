@@ -11,6 +11,22 @@ services:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-P", "3306"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 40s
+    restart: on-failure
+
+  mysql-health-check:
+    image: mysql:8.0
+    container_name: ledger_mysql_health_check
+    command: mysql -h mysql -u root -prootpassword -e "SELECT VERSION();"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: "no"
 
   php:
     build:
@@ -27,7 +43,8 @@ services:
       # This overrides the DATABASE_URL specifically inside the PHP container
       DATABASE_URL: "mysql://root:rootpassword@mysql:3306/ledger_db?serverVersion=8.0&charset=utf8mb4"
     depends_on:
-      - mysql
+      mysql-health-check:
+        condition: service_completed_successfully
 
 volumes:
   mysql_data:
