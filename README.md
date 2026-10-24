@@ -63,7 +63,7 @@ sequenceDiagram
 
 ## 3. Database Schema & Mock Data (Doctrine ORM / SQL Migrations)
 
-### 3.1 Initial Schema (001-initial-schema.sql)
+### 3.1 Initial Schema
 
 ```sql
 CREATE TABLE accounts (
@@ -100,7 +100,7 @@ CREATE INDEX idx_ledger_tx_ref ON ledger_entries(transaction_reference);
 CREATE INDEX idx_ledger_account_id ON ledger_entries(account_id);
 ```
 
-### 3.2 Sample Mock Data (001-test-sample-mock-data.sql)
+### 3.2 Sample Mock Data
 
 ```sql
 INSERT INTO accounts (id, account_number, holder_name, currency, balance, status, created_at, updated_at) VALUES
