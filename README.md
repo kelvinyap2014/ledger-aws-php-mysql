@@ -2,7 +2,7 @@
 This pet project is to demonstrate the skills of AI-assisted technical design and implementation using:
 - PHP, Symfony, Doctrine ORM
 - MySQL
-- Node.js / NestJS
+- TypeScript/ NestJS/ Node.js
 - AWS - ECS/Fargate, ALB, RDS, S3, Lambda, SQS, serverless architecture
 - Terraform
 - Git/GitHub
@@ -319,7 +319,7 @@ ledger-aws-php-mysql/
 │   │   └── Dockerfile          # Multi-stage Docker build for Symfony on Fargate
 │   │
 │   └── lambda/                 # AWS Lambda Functions
-│       └── settlement-handler/ # Asynchronous Settlement Processor (NestJS / Node.js)
+│       └── settlement-handler/ # Asynchronous Settlement Processor (TypeScript/ NestJS / Node.js)
 │           ├── src/            # NestJS Lambda entrypoint & handlers
 │           ├── package.json    # Node dependencies
 │           └── tsconfig.json   # TypeScript configuration
@@ -480,7 +480,7 @@ docker exec -it ledger_php php bin/console make:migration
 # php bin/console make:migration
 ```
 
-## NestJS (Node.js) Development
+## TypeScript, NestJS, Node.js Development
 
 ### Quick Start: Build & Package Lambda Functions
 
@@ -497,7 +497,7 @@ npm run build
 ./build.sh
 ```
 
-### Background: How NestJS (Node.js) project was setup from scratch
+### Background: How TypeScript, NestJS, Node.js project was setup from scratch
 ```bash
 mkdir -p app/lambda/settlement-handler
 cd app/lambda/settlement-handler
